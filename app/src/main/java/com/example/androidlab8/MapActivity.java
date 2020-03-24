@@ -117,6 +117,10 @@ public class MapActivity extends AppCompatActivity {
         client.enqueueCall(new Callback<DirectionsResponse>() {
             @Override
             public void onResponse(Call<DirectionsResponse> call, Response<DirectionsResponse> response) {
+                if(response.body().routes().size() == 0) {
+                    Toast.makeText(MapActivity.this, "NOT FOUND", Toast.LENGTH_SHORT).show();
+                    return;
+                }
                 directionsRoute = response.body().routes().get(0);
                 if(mapboxMap != null) {
                     mapboxMap.getStyle(new Style.OnStyleLoaded() {
@@ -125,6 +129,8 @@ public class MapActivity extends AppCompatActivity {
                             GeoJsonSource source = style.getSourceAs("11");
                             if(source != null) {
                                 source.setGeoJson(LineString.fromPolyline(directionsRoute.geometry(), PRECISION_6));
+                            } else {
+                                Toast.makeText(MapActivity.this, "NOT FOUND", Toast.LENGTH_LONG);
                             }
                         }
                     });
@@ -133,7 +139,7 @@ public class MapActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<DirectionsResponse> call, Throwable t) {
-                System.out.println("fuck");
+                finish();
             }
         });
     }
@@ -165,6 +171,8 @@ public class MapActivity extends AppCompatActivity {
                     Style style = map.getStyle();
                     if (granted && style != null) {
                         displayDeviceLocation(style, map);
+                    } else {
+                        Toast.makeText(MapActivity.this, "Error", Toast.LENGTH_LONG).show();
                     }
                 }
             });
@@ -227,16 +235,19 @@ public class MapActivity extends AppCompatActivity {
             String to = getIntent().getStringExtra("to");
             origin = addressService.getPoint(from);
             destination = addressService.getPoint(to);
-            System.out.println(origin.toString());
             return style;
         }
 
         @Override
         protected void onPostExecute(Style style) {
-             initSource(style);
-             initLayers(style);
-             getRoute(map, origin, destination);
-             displayDeviceLocation(style, map);
+            if(origin != null && destination != null) {
+                initSource(style);
+                initLayers(style);
+                getRoute(map, origin, destination);
+                displayDeviceLocation(style, map);
+            } else {
+                Toast.makeText(MapActivity.this, "NOT FOUND", Toast.LENGTH_LONG).show();
+            }
         }
     }
 }
